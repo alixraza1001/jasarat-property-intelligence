@@ -4,6 +4,15 @@ A property intelligence platform that processes Jasarat Karachi ePaper editions 
 
 **Current milestone: M1 — Project Foundation**
 
+M1 includes:
+- Canonical Jasarat full-resolution URL construction and viewer URL construction
+- Server-side page fetching with a 20-second timeout
+- JPEG validation (Content-Type, JPEG magic bytes `FF D8 FF`, minimum byte count)
+- Thumbnail safeguard (rejects `/sliderpics/` URLs even after redirects)
+- Structured `JasaratPageFetchError` with discriminated error codes
+- Mocked offline unit tests (all runnable with `pnpm test`)
+- Opt-in live smoke test against the real Jasarat endpoint
+
 ---
 
 ## About
@@ -74,6 +83,20 @@ pnpm typecheck
 pnpm build
 ```
 
+### Run opt-in live Jasarat smoke test
+
+This makes **one real HTTP request** to jasarat.news. Do not run repeatedly.
+
+```powershell
+# PowerShell (Windows)
+$env:JASARAT_LIVE_TEST=1; pnpm test jasaratPageFetcher.live
+```
+
+```bash
+# bash/zsh (Linux/macOS)
+JASARAT_LIVE_TEST=1 pnpm test jasaratPageFetcher.live
+```
+
 ---
 
 ## Project structure
@@ -83,13 +106,17 @@ src/
   app/              # Next.js App Router pages and layouts
   lib/
     jasarat/
-      jasaratTypes.ts          # Domain types (JasaratEdition, JasaratPageReference)
-      jasaratUrlBuilder.ts     # URL building + validation logic
-      jasaratUrlBuilder.test.ts # Vitest tests
-      index.ts                 # Public module API
+      jasaratTypes.ts                  # All domain types + error class
+      jasaratUrlBuilder.ts             # URL building + validation logic
+      jasaratUrlBuilder.test.ts        # URL builder unit tests
+      jasaratPageFetcher.ts            # Server-side page fetcher
+      jasaratPageFetcher.test.ts       # Mocked fetcher unit tests
+      jasaratPageFetcher.live.test.ts  # Opt-in live smoke test
+      index.ts                         # Public URL-building API
+      server.ts                        # Server-side fetcher API
 ```
 
-### Importing the Jasarat module
+### URL building (safe anywhere)
 
 ```ts
 import {
@@ -97,4 +124,15 @@ import {
   buildJasaratViewerUrl,
   type JasaratPageReference,
 } from "@/lib/jasarat";
+```
+
+### Server-side fetching (Node.js / server only)
+
+```ts
+import {
+  fetchJasaratPageImage,
+  JasaratPageFetchError,
+  type JasaratFetchedPageImage,
+  type JasaratPageFetchErrorCode,
+} from "@/lib/jasarat/server";
 ```

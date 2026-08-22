@@ -444,3 +444,142 @@ describe("fetchJasaratPageImage — invalid reference", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Regression: body-download error handling
+// ---------------------------------------------------------------------------
+
+describe("fetchJasaratPageImage — regression: arrayBuffer() failure", () => {
+  it("throws NETWORK_ERROR when response.arrayBuffer() rejects", async () => {
+    const bodyError = new TypeError("body read failed mid-stream");
+
+    // Headers succeed (200 + image/jpeg), but body read throws.
+    const failingResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Type": "image/jpeg" }),
+      url: "https://jasarat.news/epaper/images/dates/2026-08-22/karachi/mm/4.jpg",
+      arrayBuffer: async () => {
+        throw bodyError;
+      },
+    } as unknown as Response;
+
+    mockFetch.mockResolvedValueOnce(failingResponse);
+
+    await expect(
+      fetchJasaratPageImage({ date: "2026-08-22", edition: "karachi", page: 4 })
+    ).rejects.toSatisfy(
+      (e: unknown) =>
+        e instanceof JasaratPageFetchError && e.code === "NETWORK_ERROR"
+    );
+  });
+
+  it("NETWORK_ERROR from arrayBuffer() preserves the original error as cause", async () => {
+    const bodyError = new TypeError("body read failed mid-stream");
+
+    const failingResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Type": "image/jpeg" }),
+      url: "https://jasarat.news/epaper/images/dates/2026-08-22/karachi/mm/4.jpg",
+      arrayBuffer: async () => {
+        throw bodyError;
+      },
+    } as unknown as Response;
+
+    mockFetch.mockResolvedValueOnce(failingResponse);
+
+    try {
+      await fetchJasaratPageImage({ date: "2026-08-22", edition: "karachi", page: 4 });
+      expect.fail("should have thrown");
+    } catch (e) {
+      expect(e).toBeInstanceOf(JasaratPageFetchError);
+      const err = e as JasaratPageFetchError;
+      expect(err.code).toBe("NETWORK_ERROR");
+      expect(err.cause).toBe(bodyError);
+    }
+  });
+
+  it("does not convert structured JasaratPageFetchErrors into NETWORK_ERROR", async () => {
+    // Validation errors (INVALID_CONTENT_TYPE, IMAGE_TOO_SMALL, etc.) must
+    // NOT be swallowed by a catch-all NETWORK_ERROR wrapper.
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({ contentType: "text/html" })
+    );
+
+    await expect(
+      fetchJasaratPageImage({ date: "2026-08-22", edition: "karachi", page: 4 })
+    ).rejects.toSatisfy(
+      (e: unknown) =>
+        e instanceof JasaratPageFetchError && e.code === "INVALID_CONTENT_TYPE"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression: timeout covers the full operation (headers + body download)
+// ---------------------------------------------------------------------------
+
+describe("fetchJasaratPageImage — regression: timeout covers body download", () => {
+  it("aborts and throws NETWORK_ERROR if the body download stalls past the timeout", async () => {
+    vi.useFakeTimers();
+
+    // fetch() resolves successfully (headers arrive), but arrayBuffer() stalls
+    // indefinitely until the AbortController fires.
+    const controller = { signal: null as unknown as AbortSignal };
+
+    mockFetch.mockImplementationOnce(
+      (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+        // Capture the signal so we can observe abort events
+        if (init?.signal) {
+          controller.signal = init.signal as AbortSignal;
+        }
+        // Headers arrive immediately
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "Content-Type": "image/jpeg" }),
+          url: "https://jasarat.news/epaper/images/dates/2026-08-22/karachi/mm/4.jpg",
+          arrayBuffer: (): Promise<ArrayBuffer> =>
+            // This promise never resolves on its own — it only rejects when
+            // the AbortController fires (simulating a stalled download).
+            new Promise((_resolve, reject) => {
+              // Poll for abort so the fake timer can drive the rejection.
+              const check = () => {
+                if (controller.signal?.aborted) {
+                  reject(
+                    new DOMException("The operation was aborted.", "AbortError")
+                  );
+                } else {
+                  // Use setTimeout (macrotask) so vi.advanceTimersByTimeAsync
+                  // can actually advance time. An infinite microtask loop
+                  // starves the event loop.
+                  setTimeout(check, 100);
+                }
+              };
+              setTimeout(check, 100);
+            }),
+        } as unknown as Response);
+      }
+    );
+
+    const fetchPromise = expect(
+      fetchJasaratPageImage({
+        date: "2026-08-22",
+        edition: "karachi",
+        page: 4,
+      })
+    ).rejects.toSatisfy(
+      (e: unknown) =>
+        e instanceof JasaratPageFetchError && e.code === "NETWORK_ERROR"
+    );
+
+    // Advance fake time past the 20-second timeout
+    await vi.advanceTimersByTimeAsync(20_001);
+
+    await fetchPromise;
+
+    vi.useRealTimers();
+  });
+});
+

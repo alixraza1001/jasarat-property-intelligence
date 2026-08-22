@@ -91,94 +91,105 @@ export async function fetchJasaratPageImage(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  let response: Response;
   try {
-    response = await fetch(requestedUrl, {
-      signal: controller.signal,
-      // Follow redirects automatically (default); we capture the final URL.
-      redirect: "follow",
-    });
-  } catch (err) {
-    clearTimeout(timeoutId);
-    throw new JasaratPageFetchError(
-      "NETWORK_ERROR",
-      `Jasarat page fetch failed (network/timeout): ${requestedUrl}`,
+    let response: Response;
+    try {
+      response = await fetch(requestedUrl, {
+        signal: controller.signal,
+        // Follow redirects automatically (default); we capture the final URL.
+        redirect: "follow",
+      });
+    } catch (err) {
+      throw new JasaratPageFetchError(
+        "NETWORK_ERROR",
+        `Jasarat page fetch failed (network/timeout): ${requestedUrl}`,
+        requestedUrl,
+        { cause: err }
+      );
+    }
+
+    // 3. HTTP status check — before reading the body.
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new JasaratPageFetchError(
+          "NOT_FOUND",
+          `Jasarat page not found (404): ${requestedUrl}`,
+          requestedUrl,
+          { status: 404 }
+        );
+      }
+      throw new JasaratPageFetchError(
+        "HTTP_ERROR",
+        `Jasarat page request failed with HTTP ${response.status}: ${requestedUrl}`,
+        requestedUrl,
+        { status: response.status }
+      );
+    }
+
+    // 4. Thumbnail redirect check — examine the final URL before reading body.
+    const finalUrl = response.url || requestedUrl;
+    if (finalUrl.includes("/sliderpics/")) {
+      throw new JasaratPageFetchError(
+        "THUMBNAIL_RESPONSE",
+        `Jasarat response redirected to a thumbnail URL: ${finalUrl}`,
+        requestedUrl
+      );
+    }
+
+    // 5. Content-type validation.
+    const rawContentType = response.headers.get("Content-Type") ?? "";
+    const mimeType = normaliseMimeType(rawContentType);
+    if (mimeType !== "image/jpeg") {
+      throw new JasaratPageFetchError(
+        "INVALID_CONTENT_TYPE",
+        `Jasarat response has unexpected Content-Type "${rawContentType}" (expected image/jpeg): ${requestedUrl}`,
+        requestedUrl
+      );
+    }
+
+    // 6. Read the body.
+    let arrayBuffer: ArrayBuffer;
+    try {
+      arrayBuffer = await response.arrayBuffer();
+    } catch (err) {
+      throw new JasaratPageFetchError(
+        "NETWORK_ERROR",
+        `Jasarat page body download failed (network/timeout): ${requestedUrl}`,
+        requestedUrl,
+        { cause: err }
+      );
+    }
+    const bytes = new Uint8Array(arrayBuffer);
+
+    // 7. Minimum byte count safeguard.
+    if (bytes.length < MIN_JASARAT_PAGE_BYTES) {
+      throw new JasaratPageFetchError(
+        "IMAGE_TOO_SMALL",
+        `Jasarat page image is too small: got ${bytes.length} bytes, ` +
+          `minimum is ${MIN_JASARAT_PAGE_BYTES}. This may be a thumbnail or error page: ${requestedUrl}`,
+        requestedUrl
+      );
+    }
+
+    // 8. JPEG magic byte check.
+    if (!hasJpegSignature(bytes)) {
+      throw new JasaratPageFetchError(
+        "INVALID_JPEG",
+        `Jasarat response does not begin with JPEG magic bytes (FF D8 FF): ${requestedUrl}`,
+        requestedUrl
+      );
+    }
+
+    // 9. All validations passed — return structured result.
+    return {
+      reference,
       requestedUrl,
-      { cause: err }
-    );
+      finalUrl,
+      contentType: "image/jpeg",
+      byteLength: bytes.length,
+      bytes,
+    };
   } finally {
     clearTimeout(timeoutId);
   }
-
-  // 3. HTTP status check — before reading the body.
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new JasaratPageFetchError(
-        "NOT_FOUND",
-        `Jasarat page not found (404): ${requestedUrl}`,
-        requestedUrl,
-        { status: 404 }
-      );
-    }
-    throw new JasaratPageFetchError(
-      "HTTP_ERROR",
-      `Jasarat page request failed with HTTP ${response.status}: ${requestedUrl}`,
-      requestedUrl,
-      { status: response.status }
-    );
-  }
-
-  // 4. Thumbnail redirect check — examine the final URL before reading body.
-  const finalUrl = response.url || requestedUrl;
-  if (finalUrl.includes("/sliderpics/")) {
-    throw new JasaratPageFetchError(
-      "THUMBNAIL_RESPONSE",
-      `Jasarat response redirected to a thumbnail URL: ${finalUrl}`,
-      requestedUrl
-    );
-  }
-
-  // 5. Content-type validation.
-  const rawContentType = response.headers.get("Content-Type") ?? "";
-  const mimeType = normaliseMimeType(rawContentType);
-  if (mimeType !== "image/jpeg") {
-    throw new JasaratPageFetchError(
-      "INVALID_CONTENT_TYPE",
-      `Jasarat response has unexpected Content-Type "${rawContentType}" (expected image/jpeg): ${requestedUrl}`,
-      requestedUrl
-    );
-  }
-
-  // 6. Read the body.
-  const arrayBuffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-
-  // 7. Minimum byte count safeguard.
-  if (bytes.length < MIN_JASARAT_PAGE_BYTES) {
-    throw new JasaratPageFetchError(
-      "IMAGE_TOO_SMALL",
-      `Jasarat page image is too small: got ${bytes.length} bytes, ` +
-        `minimum is ${MIN_JASARAT_PAGE_BYTES}. This may be a thumbnail or error page: ${requestedUrl}`,
-      requestedUrl
-    );
-  }
-
-  // 8. JPEG magic byte check.
-  if (!hasJpegSignature(bytes)) {
-    throw new JasaratPageFetchError(
-      "INVALID_JPEG",
-      `Jasarat response does not begin with JPEG magic bytes (FF D8 FF): ${requestedUrl}`,
-      requestedUrl
-    );
-  }
-
-  // 9. All validations passed — return structured result.
-  return {
-    reference,
-    requestedUrl,
-    finalUrl,
-    contentType: "image/jpeg",
-    byteLength: bytes.length,
-    bytes,
-  };
 }

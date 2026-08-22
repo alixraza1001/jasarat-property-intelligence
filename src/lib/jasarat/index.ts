@@ -27,12 +27,17 @@ export {
 export type {
   JasaratEdition,
   JasaratPageReference,
+  JasaratEditionReference,
   // Fetcher result/error types — exported here for convenience so callers
   // that only need the types (not the runtime fetch function) don't need to
   // import from the server entry point.
   JasaratFetchedPageImage,
   JasaratPageFetchErrorCode,
+  // Discovery types
+  JasaratEditionDiscoveryResult,
+  JasaratEditionDiscoveryErrorCode,
 } from "./jasaratTypes";
 
-// JasaratPageFetchError is a class (runtime value), so it is not re-exported
-// here. Import it from "@/lib/jasarat/server" alongside fetchJasaratPageImage.
+// JasaratPageFetchError and JasaratEditionDiscoveryError are classes (runtime values),
+// so they are not re-exported here. Import them from "@/lib/jasarat/server"
+// alongside the fetch functions.

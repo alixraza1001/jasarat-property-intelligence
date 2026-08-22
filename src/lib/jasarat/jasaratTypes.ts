@@ -94,3 +94,64 @@ export class JasaratPageFetchError extends Error {
     this.status = options?.status;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Edition Discovery types
+// ---------------------------------------------------------------------------
+
+/**
+ * Identifies a whole Jasarat ePaper edition (without a specific page number).
+ */
+export interface JasaratEditionReference {
+  date: string;
+  edition: JasaratEdition;
+}
+
+/**
+ * The structured result of a successful edition page discovery.
+ */
+export interface JasaratEditionDiscoveryResult {
+  reference: JasaratEditionReference;
+  /** The requested canonical viewer URL for page 1. */
+  requestedUrl: string;
+  /** The final URL after any harmless redirects. */
+  finalUrl: string;
+  /** Unique, numerically sorted, positive integer page numbers discovered. */
+  pageNumbers: number[];
+  /** The total number of pages discovered (equivalent to pageNumbers.length). */
+  pageCount: number;
+}
+
+/**
+ * Discriminant for all JasaratEditionDiscoveryError instances.
+ */
+export type JasaratEditionDiscoveryErrorCode =
+  | "EDITION_NOT_FOUND"
+  | "HTTP_ERROR"
+  | "NETWORK_ERROR"
+  | "INVALID_CONTENT_TYPE"
+  | "UNEXPECTED_REDIRECT"
+  | "PAGE_LIST_NOT_FOUND"
+  | "PAGE_LIMIT_EXCEEDED";
+
+/**
+ * Thrown by discoverJasaratEditionPages on any discovery failure.
+ */
+export class JasaratEditionDiscoveryError extends Error {
+  readonly code: JasaratEditionDiscoveryErrorCode;
+  readonly url: string;
+  readonly status?: number;
+
+  constructor(
+    code: JasaratEditionDiscoveryErrorCode,
+    message: string,
+    url: string,
+    options?: { status?: number; cause?: unknown }
+  ) {
+    super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
+    this.name = "JasaratEditionDiscoveryError";
+    this.code = code;
+    this.url = url;
+    this.status = options?.status;
+  }
+}

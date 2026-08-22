@@ -14,9 +14,13 @@
  */
 
 export { fetchJasaratPageImage } from "./jasaratPageFetcher";
+export { discoverJasaratEditionPages } from "./jasaratEditionDiscovery";
 
 export {
   JasaratPageFetchError,
+  JasaratEditionDiscoveryError,
   type JasaratFetchedPageImage,
   type JasaratPageFetchErrorCode,
+  type JasaratEditionDiscoveryResult,
+  type JasaratEditionDiscoveryErrorCode,
 } from "./jasaratTypes";

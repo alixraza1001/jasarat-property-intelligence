@@ -9,9 +9,10 @@ M1 includes:
 - Server-side page fetching with a 20-second timeout
 - JPEG validation (Content-Type, JPEG magic bytes `FF D8 FF`, minimum byte count)
 - Thumbnail safeguard (rejects `/sliderpics/` URLs even after redirects)
-- Structured `JasaratPageFetchError` with discriminated error codes
+- Edition page discovery through viewer HTML (does not download newspaper images; it reads the lightweight viewer page list)
+- Structured `JasaratPageFetchError` and `JasaratEditionDiscoveryError` with discriminated error codes
 - Mocked offline unit tests (all runnable with `pnpm test`)
-- Opt-in live smoke test against the real Jasarat endpoint
+- Opt-in live smoke tests against the real Jasarat endpoint
 
 ---
 
@@ -106,33 +107,41 @@ src/
   app/              # Next.js App Router pages and layouts
   lib/
     jasarat/
-      jasaratTypes.ts                  # All domain types + error class
-      jasaratUrlBuilder.ts             # URL building + validation logic
-      jasaratUrlBuilder.test.ts        # URL builder unit tests
-      jasaratPageFetcher.ts            # Server-side page fetcher
-      jasaratPageFetcher.test.ts       # Mocked fetcher unit tests
-      jasaratPageFetcher.live.test.ts  # Opt-in live smoke test
-      index.ts                         # Public URL-building API
-      server.ts                        # Server-side fetcher API
+      jasaratTypes.ts                      # All domain types + error classes
+      jasaratUrlBuilder.ts                 # URL building + validation logic
+      jasaratUrlBuilder.test.ts            # URL builder unit tests
+      jasaratPageFetcher.ts                # Server-side full-page fetcher
+      jasaratPageFetcher.test.ts           # Mocked fetcher unit tests
+      jasaratPageFetcher.live.test.ts      # Opt-in page fetcher live test
+      jasaratEditionDiscovery.ts           # Edition page discovery logic
+      jasaratEditionDiscovery.test.ts      # Mocked discovery unit tests
+      jasaratEditionDiscovery.live.test.ts # Opt-in discovery live test
+      index.ts                             # Public universal API
+      server.ts                            # Server-side fetch API
 ```
 
-### URL building (safe anywhere)
+### Universal API (safe anywhere)
 
 ```ts
 import {
   buildJasaratPageImageUrl,
   buildJasaratViewerUrl,
   type JasaratPageReference,
+  type JasaratEditionReference,
 } from "@/lib/jasarat";
 ```
 
-### Server-side fetching (Node.js / server only)
+### Server-side fetching API (Node.js / server only)
 
 ```ts
 import {
   fetchJasaratPageImage,
+  discoverJasaratEditionPages,
   JasaratPageFetchError,
+  JasaratEditionDiscoveryError,
   type JasaratFetchedPageImage,
   type JasaratPageFetchErrorCode,
+  type JasaratEditionDiscoveryResult,
+  type JasaratEditionDiscoveryErrorCode,
 } from "@/lib/jasarat/server";
 ```

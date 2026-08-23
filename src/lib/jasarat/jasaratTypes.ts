@@ -155,3 +155,60 @@ export class JasaratEditionDiscoveryError extends Error {
     this.status = options?.status;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Historical Acquisition Manifest types
+// ---------------------------------------------------------------------------
+
+export interface JasaratHistoricalManifestOptions {
+  /** Strict YYYY-MM-DD */
+  startDate: string;
+  /** e.g. "karachi" */
+  edition: JasaratEdition;
+  /** Defaults to 7, maximum 30. Specifies how many successful editions to collect. */
+  targetEditionCount?: number;
+}
+
+export interface JasaratHistoricalAcquisitionManifest {
+  startDate: string;
+  edition: JasaratEdition;
+
+  targetEditionCount: number;
+  successfulEditionCount: number;
+  inspectedDateCount: number;
+
+  targetReached: boolean;
+
+  entries: JasaratAcquisitionManifestEntry[];
+}
+
+export type JasaratAcquisitionManifestEntry =
+  | JasaratAcquisitionManifestEntryCompleted
+  | JasaratAcquisitionManifestEntryUnavailable
+  | JasaratAcquisitionManifestEntryRetry;
+
+export interface JasaratAcquisitionManifestEntryCompleted {
+  date: string;
+  edition: JasaratEdition;
+  status: "COMPLETED";
+  pageNumbers: number[];
+  pageCount: number;
+  requestedUrl: string;
+  finalUrl: string;
+}
+
+export interface JasaratAcquisitionManifestEntryUnavailable {
+  date: string;
+  edition: JasaratEdition;
+  status: "DATE_NOT_AVAILABLE";
+  errorCode: "EDITION_NOT_FOUND";
+}
+
+export interface JasaratAcquisitionManifestEntryRetry {
+  date: string;
+  edition: JasaratEdition;
+  status: "RETRY_PENDING";
+  /** Any error code EXCEPT EDITION_NOT_FOUND */
+  errorCode: JasaratEditionDiscoveryErrorCode;
+  errorMessage?: string;
+}

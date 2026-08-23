@@ -110,12 +110,17 @@ src/
       jasaratTypes.ts                      # All domain types + error classes
       jasaratUrlBuilder.ts                 # URL building + validation logic
       jasaratUrlBuilder.test.ts            # URL builder unit tests
+      jasaratDateUtils.ts                  # UTC date arithmetic helper
+      jasaratDateUtils.test.ts             # Date arithmetic unit tests
       jasaratPageFetcher.ts                # Server-side full-page fetcher
       jasaratPageFetcher.test.ts           # Mocked fetcher unit tests
       jasaratPageFetcher.live.test.ts      # Opt-in page fetcher live test
       jasaratEditionDiscovery.ts           # Edition page discovery logic
       jasaratEditionDiscovery.test.ts      # Mocked discovery unit tests
       jasaratEditionDiscovery.live.test.ts # Opt-in discovery live test
+      jasaratHistoricalManifest.ts           # Orchestrator for historical manifests
+      jasaratHistoricalManifest.test.ts      # Mocked manifest orchestration tests
+      jasaratHistoricalManifest.live.test.ts # Opt-in manifest live test
       index.ts                             # Public universal API
       server.ts                            # Server-side fetch API
 ```

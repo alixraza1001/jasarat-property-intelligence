@@ -36,6 +36,13 @@ export type {
   // Discovery types
   JasaratEditionDiscoveryResult,
   JasaratEditionDiscoveryErrorCode,
+  // Manifest types
+  JasaratHistoricalManifestOptions,
+  JasaratHistoricalAcquisitionManifest,
+  JasaratAcquisitionManifestEntry,
+  JasaratAcquisitionManifestEntryCompleted,
+  JasaratAcquisitionManifestEntryUnavailable,
+  JasaratAcquisitionManifestEntryRetry,
 } from "./jasaratTypes";
 
 // JasaratPageFetchError and JasaratEditionDiscoveryError are classes (runtime values),

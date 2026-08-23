@@ -1,7 +1,7 @@
 # M1 Task 4 Historical Acquisition Manifest Design
 
 ## Overview
-Task 4 builds an in-memory historical acquisition manifest orchestrator. It orchestrates the existing \`discoverJasaratEditionPages()\` logic to chronologically walk backward day-by-day from a starting date, collecting discovered Jasarat editions until a quota of successful editions is reached or a safety ceiling of inspected dates is hit. 
+Task 4 builds an in-memory historical acquisition manifest orchestrator. It orchestrates the existing \`discoverJasaratEditionPages()\` logic to chronologically walk backward day-by-day from a starting date, collecting discovered Jasarat editions until a quota of successful editions is reached or a safety ceiling of inspected dates is hit.
 
 It **does not** download newspaper JPEGs, and it **does not** use a database or external persistence mechanism.
 

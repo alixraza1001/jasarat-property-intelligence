@@ -26,9 +26,9 @@ describe("buildJasaratHistoricalAcquisitionManifest", () => {
 
   it("default target is 7", async () => {
     vi.mocked(discoveryModule.discoverJasaratEditionPages).mockImplementation(async (ref) => successfulResult(ref.date));
-    
+
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi" });
-    
+
     expect(manifest.targetEditionCount).toBe(7);
     expect(manifest.successfulEditionCount).toBe(7);
     expect(manifest.entries.length).toBe(7);
@@ -36,25 +36,25 @@ describe("buildJasaratHistoricalAcquisitionManifest", () => {
 
   it("starting date is included", async () => {
     vi.mocked(discoveryModule.discoverJasaratEditionPages).mockImplementation(async (ref) => successfulResult(ref.date));
-    
+
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 1 });
-    
+
     expect(manifest.entries[0].date).toBe("2026-08-20");
   });
 
   it("dates move backward and outputs are newest-to-oldest", async () => {
     vi.mocked(discoveryModule.discoverJasaratEditionPages).mockImplementation(async (ref) => successfulResult(ref.date));
-    
+
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 3 });
-    
+
     expect(manifest.entries.map(e => e.date)).toEqual(["2026-08-20", "2026-08-19", "2026-08-18"]);
   });
 
   it("seven straight successes stop after seven inspections", async () => {
     vi.mocked(discoveryModule.discoverJasaratEditionPages).mockImplementation(async (ref) => successfulResult(ref.date));
-    
+
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi" });
-    
+
     expect(manifest.inspectedDateCount).toBe(7);
     expect(manifest.targetReached).toBe(true);
   });
@@ -66,9 +66,9 @@ describe("buildJasaratHistoricalAcquisitionManifest", () => {
       }
       return successfulResult(ref.date);
     });
-    
+
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 2 });
-    
+
     expect(manifest.inspectedDateCount).toBe(3); // 20, 19 (fail), 18
     expect(manifest.successfulEditionCount).toBe(2);
     expect(manifest.entries[1].status).toBe("DATE_NOT_AVAILABLE");
@@ -84,9 +84,9 @@ describe("buildJasaratHistoricalAcquisitionManifest", () => {
       }
       return successfulResult(ref.date);
     });
-    
+
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 2 });
-    
+
     expect(manifest.inspectedDateCount).toBe(3);
     expect(manifest.entries[1].status).toBe("RETRY_PENDING");
     if (manifest.entries[1].status === "RETRY_PENDING") {
@@ -160,7 +160,7 @@ describe("buildJasaratHistoricalAcquisitionManifest", () => {
     );
 
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi" });
-    
+
     expect(manifest.inspectedDateCount).toBe(30);
     expect(manifest.successfulEditionCount).toBe(0);
     expect(manifest.targetReached).toBe(false);
@@ -180,10 +180,25 @@ describe("buildJasaratHistoricalAcquisitionManifest", () => {
     await expect(buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 31 })).rejects.toThrow();
   });
 
+  it("fractional target rejects", async () => {
+    await expect(buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 1.5 })).rejects.toThrow();
+  });
+
+  it("NaN target rejects", async () => {
+    await expect(buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: NaN })).rejects.toThrow();
+  });
+
+  it("unexpected code errors are rethrown, not disguised as network failures", async () => {
+    const unexpectedError = new TypeError("Cannot read properties of undefined");
+    vi.mocked(discoveryModule.discoverJasaratEditionPages).mockRejectedValueOnce(unexpectedError);
+
+    await expect(buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi" })).rejects.toThrow(unexpectedError);
+  });
+
   it("successful result preserves Task 3 page metadata", async () => {
     vi.mocked(discoveryModule.discoverJasaratEditionPages).mockResolvedValue(successfulResult("2026-08-20"));
     const manifest = await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 1 });
-    
+
     const entry = manifest.entries[0];
     expect(entry.status).toBe("COMPLETED");
     if (entry.status === "COMPLETED") {
@@ -197,7 +212,7 @@ describe("buildJasaratHistoricalAcquisitionManifest", () => {
   it("Task 4 never calls image fetcher", async () => {
     vi.mocked(discoveryModule.discoverJasaratEditionPages).mockResolvedValue(successfulResult("2026-08-20"));
     await buildJasaratHistoricalAcquisitionManifest({ startDate: "2026-08-20", edition: "karachi", targetEditionCount: 1 });
-    
+
     expect(fetcherModule.fetchJasaratPageImage).not.toHaveBeenCalled();
   });
 });

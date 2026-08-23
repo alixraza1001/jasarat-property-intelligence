@@ -106,12 +106,12 @@ export async function discoverJasaratEditionPages(
     }
 
     const finalUrl = response.url || requestedUrl;
-    
+
     // Validate that any redirect hasn't unexpectedly changed the date or edition.
     // The pathname must still start with /epaper/YYYY/MM/DD/edition/
     const datePath = reference.date.replace(/-/g, "/"); // YYYY-MM-DD -> YYYY/MM/DD
     const expectedPathPrefix = `/epaper/${datePath}/${reference.edition}/`;
-    
+
     let finalUrlObj: URL;
     try {
       finalUrlObj = new URL(finalUrl);
@@ -151,11 +151,11 @@ export async function discoverJasaratEditionPages(
       try {
         const urlObj = new URL(href, finalUrlObj); // Resolve relative to finalURL
         const pathname = urlObj.pathname;
-        
+
         if (pathname.startsWith(expectedPathPrefix)) {
           // Extract the remainder after the prefix
           const remainder = pathname.slice(expectedPathPrefix.length);
-          
+
           // Must be exactly one or more digits with no trailing slash/text.
           if (/^\d+$/.test(remainder)) {
             const pageNum = parseInt(remainder, 10);

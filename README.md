@@ -2,7 +2,7 @@
 
 A property intelligence platform that processes Jasarat Karachi ePaper editions to extract real-estate transaction records.
 
-**Current milestone: M1 — Project Foundation**
+**Current milestone: M1 — Jasarat Source-Acquisition Proof/Foundation**
 
 M1 includes:
 - Canonical Jasarat full-resolution URL construction and viewer URL construction
@@ -10,6 +10,7 @@ M1 includes:
 - JPEG validation (Content-Type, JPEG magic bytes `FF D8 FF`, minimum byte count)
 - Thumbnail safeguard (rejects `/sliderpics/` URLs even after redirects)
 - Edition page discovery through viewer HTML (does not download newspaper images; it reads the lightweight viewer page list)
+- Historical acquisition manifest generation (in-memory orchestration to plan backward edition discovery without downloading JPEGs)
 - Structured `JasaratPageFetchError` and `JasaratEditionDiscoveryError` with discriminated error codes
 - Mocked offline unit tests (all runnable with `pnpm test`)
 - Opt-in live smoke tests against the real Jasarat endpoint
@@ -20,7 +21,7 @@ M1 includes:
 
 The system sources high-resolution newspaper pages from the Jasarat ePaper and will eventually extract property transaction notices (e.g. `اطلاع عام`) from them using AI, then validate and store the results for search and export.
 
-At M1, only the project foundation and URL-building logic for Jasarat Karachi are implemented. No downloading, AI, database, or dashboard exists yet.
+At M1, the Jasarat source-acquisition proof/foundation is implemented, including validated full-resolution page fetching and historical acquisition manifest generation. No AI, database, persistence, scheduling, automated historical image downloading, or dashboard exists yet.
 
 ---
 
@@ -142,11 +143,15 @@ import {
 import {
   fetchJasaratPageImage,
   discoverJasaratEditionPages,
+  buildJasaratHistoricalAcquisitionManifest,
   JasaratPageFetchError,
   JasaratEditionDiscoveryError,
   type JasaratFetchedPageImage,
   type JasaratPageFetchErrorCode,
   type JasaratEditionDiscoveryResult,
   type JasaratEditionDiscoveryErrorCode,
+  type JasaratHistoricalManifestOptions,
+  type JasaratHistoricalAcquisitionManifest,
+  type JasaratAcquisitionManifestEntry,
 } from "@/lib/jasarat/server";
 ```

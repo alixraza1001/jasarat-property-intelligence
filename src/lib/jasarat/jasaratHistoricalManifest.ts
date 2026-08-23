@@ -21,7 +21,7 @@ export async function buildJasaratHistoricalAcquisitionManifest(
 ): Promise<JasaratHistoricalAcquisitionManifest> {
   const targetEditionCount = options.targetEditionCount ?? 7;
 
-  if (targetEditionCount <= 0 || targetEditionCount > MAX_BACKFILL_CALENDAR_DAYS) {
+  if (!Number.isInteger(targetEditionCount) || targetEditionCount <= 0 || targetEditionCount > MAX_BACKFILL_CALENDAR_DAYS) {
     throw new Error(`Invalid targetEditionCount: must be between 1 and ${MAX_BACKFILL_CALENDAR_DAYS}.`);
   }
 
@@ -75,14 +75,8 @@ export async function buildJasaratHistoricalAcquisitionManifest(
           });
         }
       } else {
-        // Fallback for non-discovery errors (unlikely, but safe)
-        entries.push({
-          date: currentDate,
-          edition: options.edition,
-          status: "RETRY_PENDING",
-          errorCode: "NETWORK_ERROR",
-          errorMessage: err instanceof Error ? err.message : String(err),
-        });
+        // Rethrow non-discovery errors (e.g. programmer errors like TypeError)
+        throw err;
       }
     }
 

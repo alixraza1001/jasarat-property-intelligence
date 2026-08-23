@@ -34,7 +34,7 @@ describe.skipIf(!LIVE_ENABLED)(
         if (entry.status === "COMPLETED") {
           expect(entry.requestedUrl).not.toContain("/mm/");
           expect(entry.requestedUrl).not.toContain(".jpg");
-          
+
           expect(entry.finalUrl).not.toContain("/mm/");
           expect(entry.finalUrl).not.toContain(".jpg");
         }
@@ -43,7 +43,7 @@ describe.skipIf(!LIVE_ENABLED)(
       const completed = manifest.entries.filter((e) => e.status === "COMPLETED");
       expect(completed.length).toBe(2);
 
-      // Verify backward date movement (the first completed entry should be 2026-08-15 if available, 
+      // Verify backward date movement (the first completed entry should be 2026-08-15 if available,
       // but definitively newer than the second).
       const d1 = new Date(completed[0].date).getTime();
       const d2 = new Date(completed[1].date).getTime();
@@ -54,7 +54,7 @@ describe.skipIf(!LIVE_ENABLED)(
       if (firstCompleted.status === "COMPLETED") {
         expect(firstCompleted.pageCount).toBeGreaterThan(0);
         expect(firstCompleted.pageNumbers.length).toBe(firstCompleted.pageCount);
-        
+
         // Ensure sorted
         const sorted = [...firstCompleted.pageNumbers].sort((a, b) => a - b);
         expect(firstCompleted.pageNumbers).toEqual(sorted);

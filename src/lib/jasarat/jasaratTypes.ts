@@ -209,6 +209,6 @@ export interface JasaratAcquisitionManifestEntryRetry {
   edition: JasaratEdition;
   status: "RETRY_PENDING";
   /** Any error code EXCEPT EDITION_NOT_FOUND */
-  errorCode: JasaratEditionDiscoveryErrorCode;
+  errorCode: Exclude<JasaratEditionDiscoveryErrorCode, "EDITION_NOT_FOUND">;
   errorMessage?: string;
 }

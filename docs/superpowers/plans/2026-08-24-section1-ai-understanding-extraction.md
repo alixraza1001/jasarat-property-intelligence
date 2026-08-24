@@ -18,12 +18,13 @@
 ## Checkpoint 3 — Provider-Neutral AI Gateway
 - [ ] Define `ProviderModelInterface` in `src/lib/jasarat/ai/provider.ts`.
 - [ ] Implement normalized provider error taxonomy (e.g., `AUTH_ERROR`, `RATE_LIMITED`).
-- [ ] Create `GeminiAdapter` wrapping the official Google SDK (or OmniRoute). Ensure API keys are loaded securely from `process.env`.
+- [ ] Create an OmniRoute-compatible provider adapter using native fetch. Ensure API keys are loaded securely from `process.env`.
 - [ ] Write tests using mocks to verify error taxonomy mapping.
 
-## Checkpoint 4 — Model Evaluation Harness
+## Checkpoint 4 — Model Candidate Discovery & Evaluation Harness
+- [ ] Implement model candidate discovery: inspect current free-tier catalog, verify vision capability, and select explicit benchmarking targets.
 - [ ] Create `scripts/evaluate-models.ts`.
-- [ ] Implement logic to run all benchmark cases against configured models.
+- [ ] Implement logic to run all benchmark cases against the explicitly selected model targets (do not score `model:auto` as a stable target).
 - [ ] Capture raw responses, validation results, and latency into machine-readable output.
 
 ## Checkpoint 5 — Page/Region Semantic Understanding
@@ -44,8 +45,8 @@
 ## Checkpoint 8 — Normalization & Confidence
 - [ ] Implement `normalizeTransaction()` in `src/lib/jasarat/ai/normalization.ts`.
 - [ ] Write unit tests for society equivalents, plot preservation, and size canonicalization.
-- [ ] Implement deterministic `computeConfidence()` scoring logic based on missing/uncertain fields.
-- [ ] Write unit tests for confidence score threshold mapping.
+- [ ] Implement separate deterministic `computeClassificationConfidence()` and `computeExtractionConfidence()` scoring logic based on evidence strength, ambiguity, and validation warnings.
+- [ ] Write unit tests for confidence scoring, ensuring correctly absent optional fields do not lower confidence.
 
 ## Checkpoint 9 — Benchmark Scoring & Model Comparison
 - [ ] Implement scoring logic in the evaluation harness.

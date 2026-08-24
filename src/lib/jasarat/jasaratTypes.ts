@@ -94,3 +94,121 @@ export class JasaratPageFetchError extends Error {
     this.status = options?.status;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Edition Discovery types
+// ---------------------------------------------------------------------------
+
+/**
+ * Identifies a whole Jasarat ePaper edition (without a specific page number).
+ */
+export interface JasaratEditionReference {
+  date: string;
+  edition: JasaratEdition;
+}
+
+/**
+ * The structured result of a successful edition page discovery.
+ */
+export interface JasaratEditionDiscoveryResult {
+  reference: JasaratEditionReference;
+  /** The requested canonical viewer URL for page 1. */
+  requestedUrl: string;
+  /** The final URL after any harmless redirects. */
+  finalUrl: string;
+  /** Unique, numerically sorted, positive integer page numbers discovered. */
+  pageNumbers: number[];
+  /** The total number of pages discovered (equivalent to pageNumbers.length). */
+  pageCount: number;
+}
+
+/**
+ * Discriminant for all JasaratEditionDiscoveryError instances.
+ */
+export type JasaratEditionDiscoveryErrorCode =
+  | "EDITION_NOT_FOUND"
+  | "HTTP_ERROR"
+  | "NETWORK_ERROR"
+  | "INVALID_CONTENT_TYPE"
+  | "UNEXPECTED_REDIRECT"
+  | "PAGE_LIST_NOT_FOUND"
+  | "PAGE_LIMIT_EXCEEDED";
+
+/**
+ * Thrown by discoverJasaratEditionPages on any discovery failure.
+ */
+export class JasaratEditionDiscoveryError extends Error {
+  readonly code: JasaratEditionDiscoveryErrorCode;
+  readonly url: string;
+  readonly status?: number;
+
+  constructor(
+    code: JasaratEditionDiscoveryErrorCode,
+    message: string,
+    url: string,
+    options?: { status?: number; cause?: unknown }
+  ) {
+    super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
+    this.name = "JasaratEditionDiscoveryError";
+    this.code = code;
+    this.url = url;
+    this.status = options?.status;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Historical Acquisition Manifest types
+// ---------------------------------------------------------------------------
+
+export interface JasaratHistoricalManifestOptions {
+  /** Strict YYYY-MM-DD */
+  startDate: string;
+  /** e.g. "karachi" */
+  edition: JasaratEdition;
+  /** Defaults to 7, maximum 30. Specifies how many successful editions to collect. */
+  targetEditionCount?: number;
+}
+
+export interface JasaratHistoricalAcquisitionManifest {
+  startDate: string;
+  edition: JasaratEdition;
+
+  targetEditionCount: number;
+  successfulEditionCount: number;
+  inspectedDateCount: number;
+
+  targetReached: boolean;
+
+  entries: JasaratAcquisitionManifestEntry[];
+}
+
+export type JasaratAcquisitionManifestEntry =
+  | JasaratAcquisitionManifestEntryCompleted
+  | JasaratAcquisitionManifestEntryUnavailable
+  | JasaratAcquisitionManifestEntryRetry;
+
+export interface JasaratAcquisitionManifestEntryCompleted {
+  date: string;
+  edition: JasaratEdition;
+  status: "COMPLETED";
+  pageNumbers: number[];
+  pageCount: number;
+  requestedUrl: string;
+  finalUrl: string;
+}
+
+export interface JasaratAcquisitionManifestEntryUnavailable {
+  date: string;
+  edition: JasaratEdition;
+  status: "DATE_NOT_AVAILABLE";
+  errorCode: "EDITION_NOT_FOUND";
+}
+
+export interface JasaratAcquisitionManifestEntryRetry {
+  date: string;
+  edition: JasaratEdition;
+  status: "RETRY_PENDING";
+  /** Any error code EXCEPT EDITION_NOT_FOUND */
+  errorCode: Exclude<JasaratEditionDiscoveryErrorCode, "EDITION_NOT_FOUND">;
+  errorMessage?: string;
+}

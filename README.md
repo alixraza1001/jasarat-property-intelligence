@@ -2,16 +2,18 @@
 
 A property intelligence platform that processes Jasarat Karachi ePaper editions to extract real-estate transaction records.
 
-**Current milestone: M1 — Project Foundation**
+**Current milestone: M1 — Jasarat Source-Acquisition Proof/Foundation**
 
 M1 includes:
 - Canonical Jasarat full-resolution URL construction and viewer URL construction
 - Server-side page fetching with a 20-second timeout
 - JPEG validation (Content-Type, JPEG magic bytes `FF D8 FF`, minimum byte count)
 - Thumbnail safeguard (rejects `/sliderpics/` URLs even after redirects)
-- Structured `JasaratPageFetchError` with discriminated error codes
+- Edition page discovery through viewer HTML (does not download newspaper images; it reads the lightweight viewer page list)
+- Historical acquisition manifest generation (in-memory orchestration to plan backward edition discovery without downloading JPEGs)
+- Structured `JasaratPageFetchError` and `JasaratEditionDiscoveryError` with discriminated error codes
 - Mocked offline unit tests (all runnable with `pnpm test`)
-- Opt-in live smoke test against the real Jasarat endpoint
+- Opt-in live smoke tests against the real Jasarat endpoint
 
 ---
 
@@ -19,7 +21,7 @@ M1 includes:
 
 The system sources high-resolution newspaper pages from the Jasarat ePaper and will eventually extract property transaction notices (e.g. `اطلاع عام`) from them using AI, then validate and store the results for search and export.
 
-At M1, only the project foundation and URL-building logic for Jasarat Karachi are implemented. No downloading, AI, database, or dashboard exists yet.
+At M1, the Jasarat source-acquisition proof/foundation is implemented, including validated full-resolution page fetching and historical acquisition manifest generation. No AI, database, persistence, scheduling, automated historical image downloading, or dashboard exists yet.
 
 ---
 
@@ -106,33 +108,50 @@ src/
   app/              # Next.js App Router pages and layouts
   lib/
     jasarat/
-      jasaratTypes.ts                  # All domain types + error class
-      jasaratUrlBuilder.ts             # URL building + validation logic
-      jasaratUrlBuilder.test.ts        # URL builder unit tests
-      jasaratPageFetcher.ts            # Server-side page fetcher
-      jasaratPageFetcher.test.ts       # Mocked fetcher unit tests
-      jasaratPageFetcher.live.test.ts  # Opt-in live smoke test
-      index.ts                         # Public URL-building API
-      server.ts                        # Server-side fetcher API
+      jasaratTypes.ts                      # All domain types + error classes
+      jasaratUrlBuilder.ts                 # URL building + validation logic
+      jasaratUrlBuilder.test.ts            # URL builder unit tests
+      jasaratDateUtils.ts                  # UTC date arithmetic helper
+      jasaratDateUtils.test.ts             # Date arithmetic unit tests
+      jasaratPageFetcher.ts                # Server-side full-page fetcher
+      jasaratPageFetcher.test.ts           # Mocked fetcher unit tests
+      jasaratPageFetcher.live.test.ts      # Opt-in page fetcher live test
+      jasaratEditionDiscovery.ts           # Edition page discovery logic
+      jasaratEditionDiscovery.test.ts      # Mocked discovery unit tests
+      jasaratEditionDiscovery.live.test.ts # Opt-in discovery live test
+      jasaratHistoricalManifest.ts           # Orchestrator for historical manifests
+      jasaratHistoricalManifest.test.ts      # Mocked manifest orchestration tests
+      jasaratHistoricalManifest.live.test.ts # Opt-in manifest live test
+      index.ts                             # Public universal API
+      server.ts                            # Server-side fetch API
 ```
 
-### URL building (safe anywhere)
+### Universal API (safe anywhere)
 
 ```ts
 import {
   buildJasaratPageImageUrl,
   buildJasaratViewerUrl,
   type JasaratPageReference,
+  type JasaratEditionReference,
 } from "@/lib/jasarat";
 ```
 
-### Server-side fetching (Node.js / server only)
+### Server-side fetching API (Node.js / server only)
 
 ```ts
 import {
   fetchJasaratPageImage,
+  discoverJasaratEditionPages,
+  buildJasaratHistoricalAcquisitionManifest,
   JasaratPageFetchError,
+  JasaratEditionDiscoveryError,
   type JasaratFetchedPageImage,
   type JasaratPageFetchErrorCode,
+  type JasaratEditionDiscoveryResult,
+  type JasaratEditionDiscoveryErrorCode,
+  type JasaratHistoricalManifestOptions,
+  type JasaratHistoricalAcquisitionManifest,
+  type JasaratAcquisitionManifestEntry,
 } from "@/lib/jasarat/server";
 ```

@@ -14,9 +14,21 @@
  */
 
 export { fetchJasaratPageImage } from "./jasaratPageFetcher";
+export { discoverJasaratEditionPages } from "./jasaratEditionDiscovery";
+export { buildJasaratHistoricalAcquisitionManifest } from "./jasaratHistoricalManifest";
 
 export {
   JasaratPageFetchError,
+  JasaratEditionDiscoveryError,
   type JasaratFetchedPageImage,
   type JasaratPageFetchErrorCode,
+  type JasaratEditionDiscoveryResult,
+  type JasaratEditionDiscoveryErrorCode,
+  // Manifest types
+  type JasaratHistoricalManifestOptions,
+  type JasaratHistoricalAcquisitionManifest,
+  type JasaratAcquisitionManifestEntry,
+  type JasaratAcquisitionManifestEntryCompleted,
+  type JasaratAcquisitionManifestEntryUnavailable,
+  type JasaratAcquisitionManifestEntryRetry,
 } from "./jasaratTypes";

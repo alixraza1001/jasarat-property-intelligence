@@ -1,157 +1,182 @@
-# Jasarat Property Intelligence System
+# Jasarat Property Intelligence
 
-A property intelligence platform that processes Jasarat Karachi ePaper editions to extract real-estate transaction records.
+A real-estate intelligence system for turning Urdu newspaper property transaction notices into structured, searchable data.
 
-**Current milestone: M1 — Jasarat Source-Acquisition Proof/Foundation**
+The project begins with the **Jasarat Karachi ePaper** and focuses on building a reliable acquisition and extraction pipeline for notices that are useful to Pakistani real-estate professionals.
 
-M1 includes:
-- Canonical Jasarat full-resolution URL construction and viewer URL construction
-- Server-side page fetching with a 20-second timeout
-- JPEG validation (Content-Type, JPEG magic bytes `FF D8 FF`, minimum byte count)
-- Thumbnail safeguard (rejects `/sliderpics/` URLs even after redirects)
-- Edition page discovery through viewer HTML (does not download newspaper images; it reads the lightweight viewer page list)
-- Historical acquisition manifest generation (in-memory orchestration to plan backward edition discovery without downloading JPEGs)
-- Structured `JasaratPageFetchError` and `JasaratEditionDiscoveryError` with discriminated error codes
-- Mocked offline unit tests (all runnable with `pnpm test`)
-- Opt-in live smoke tests against the real Jasarat endpoint
+## The problem
 
----
+Property transfer, sale and purchase notices are often published inside newspaper pages as unstructured Urdu text. Valuable information — estate/agency names, phone numbers, societies, sectors, plot numbers, plot sizes and transaction context — is difficult to search, filter or reuse when it remains locked inside daily newspaper images.
 
-## About
+Jasarat Property Intelligence is being built to convert that source material into a reviewable dataset while preserving traceability back to the original newspaper page.
 
-The system sources high-resolution newspaper pages from the Jasarat ePaper and will eventually extract property transaction notices (e.g. `اطلاع عام`) from them using AI, then validate and store the results for search and export.
+## What is implemented today
 
-At M1, the Jasarat source-acquisition proof/foundation is implemented, including validated full-resolution page fetching and historical acquisition manifest generation. No AI, database, persistence, scheduling, automated historical image downloading, or dashboard exists yet.
+The current repository includes the **Jasarat source-acquisition foundation**, including:
 
----
+- canonical full-resolution Jasarat image URL construction
+- human-viewer URL construction
+- server-side page fetching with timeout handling
+- JPEG validation using content type, magic bytes and minimum-size checks
+- rejection of low-resolution `/sliderpics/` thumbnails
+- edition page discovery from Jasarat viewer HTML
+- historical acquisition-manifest generation
+- structured domain errors and error codes
+- mocked offline unit tests
+- opt-in live smoke tests against Jasarat
 
-## First supported source: Jasarat Karachi
+The project is intentionally staged: reliable source acquisition comes before automated AI extraction.
 
-Jasarat exposes two distinct image paths per page:
+## Source acquisition pipeline
 
-| Type | URL pattern | Used? |
-|------|------------|-------|
-| **High-resolution** (primary) | `.../epaper/images/dates/YYYY-MM-DD/karachi/mm/PAGE.jpg` | ✅ Yes |
-| Low-resolution thumbnail | `.../epaper/images/dates/YYYY-MM-DD/karachi/mm/sliderpics/PAGE.jpg` | ❌ Never |
-
-The `sliderpics` path is only used by the viewer's slider thumbnail strip and is never suitable as a primary image source. The system strictly uses the high-resolution `/mm/PAGE.jpg` path.
-
-The viewer URL (for human browsing) follows a different format:
-
+```text
+Jasarat edition/date
+        ↓
+Discover available pages
+        ↓
+Build canonical full-resolution URLs
+        ↓
+Fetch + validate newspaper image
+        ↓
+Create historical acquisition manifest
+        ↓
+Benchmark / extraction / human review layers
 ```
+
+### High-resolution source handling
+
+Jasarat exposes both full newspaper pages and low-resolution slider thumbnails. This project treats them differently:
+
+```text
+Full page:  .../epaper/images/dates/YYYY-MM-DD/karachi/mm/PAGE.jpg
+Thumbnail:  .../epaper/images/dates/YYYY-MM-DD/karachi/mm/sliderpics/PAGE.jpg
+```
+
+Only the full-resolution `/mm/PAGE.jpg` source is acceptable for primary acquisition. The fetcher rejects thumbnail paths even after redirects.
+
+The human viewer uses a separate URL pattern:
+
+```text
 https://jasarat.news/epaper/YYYY/MM/DD/karachi/PAGE
 ```
 
-Note that the viewer URL uses slashes (`YYYY/MM/DD`) while the image URL uses dashes (`YYYY-MM-DD`).
+## Data extraction direction
 
----
+The next layers of the system are designed around identifying relevant property notices, extracting structured fields, and sending uncertain cases through human review.
 
-## Developer commands
+Target fields include information such as:
 
-### Install dependencies
+- estate / agency name
+- phone numbers
+- society
+- sector
+- plot type
+- plot size
+- plot number
+- transaction context
+- source date / page reference
+
+**Important:** acquisition and source validation are implemented foundations; AI extraction, reviewer workflows, searchable persistence and broader automation should be treated as work in progress unless the corresponding code is present in the repository.
+
+## Reliability & validation
+
+A key design goal is to make errors visible rather than silently accepting weak source material.
+
+The acquisition layer includes:
+
+- discriminated error types
+- content validation before accepting an image
+- explicit timeout behavior
+- rejection of thumbnail-quality sources
+- offline mocked tests for deterministic development
+- opt-in live tests so routine test runs do not repeatedly hit the newspaper site
+
+This makes the source layer testable independently from future AI/model choices.
+
+## Architecture & project structure
+
+```text
+src/
+├── app/                         # Next.js App Router
+└── lib/
+    └── jasarat/
+        ├── jasaratTypes.ts
+        ├── jasaratUrlBuilder.ts
+        ├── jasaratDateUtils.ts
+        ├── jasaratPageFetcher.ts
+        ├── jasaratEditionDiscovery.ts
+        ├── jasaratHistoricalManifest.ts
+        ├── index.ts
+        └── server.ts
+```
+
+The universal API contains URL/domain helpers that can be used broadly, while server-only acquisition functions are kept behind the server entry point.
+
+## Tech stack
+
+- TypeScript
+- Next.js / React
+- Node.js server-side fetch pipeline
+- Vitest
+- ESLint
+- pnpm
+
+Later product layers are being designed to remain separable from the source-acquisition module so model providers, persistence and reviewer UI can evolve without rewriting the newspaper-fetching foundation.
+
+## Development commands
+
+Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-### Run development server
+Run the development server:
 
 ```bash
 pnpm dev
 ```
 
-### Run tests
+Run tests:
 
 ```bash
-pnpm test          # single run
-pnpm test:watch    # watch mode
+pnpm test
+pnpm test:watch
 ```
 
-### Run ESLint
+Lint and type-check:
 
 ```bash
 pnpm lint
-```
-
-### Type-check
-
-```bash
 pnpm typecheck
 ```
 
-### Build for production
+Build:
 
 ```bash
 pnpm build
 ```
 
-### Run opt-in live Jasarat smoke test
+### Opt-in live smoke test
 
-This makes **one real HTTP request** to jasarat.news. Do not run repeatedly.
+Live tests make real requests to Jasarat and should be used sparingly.
+
+PowerShell:
 
 ```powershell
-# PowerShell (Windows)
 $env:JASARAT_LIVE_TEST=1; pnpm test jasaratPageFetcher.live
 ```
 
+Bash / zsh:
+
 ```bash
-# bash/zsh (Linux/macOS)
 JASARAT_LIVE_TEST=1 pnpm test jasaratPageFetcher.live
 ```
 
+## Project status
+
+The project is under active development. The acquisition layer provides a tested foundation for a larger property-intelligence workflow; extraction quality, benchmark curation, review tooling and searchable data workflows are being developed in controlled stages rather than treated as finished features.
+
 ---
 
-## Project structure
-
-```
-src/
-  app/              # Next.js App Router pages and layouts
-  lib/
-    jasarat/
-      jasaratTypes.ts                      # All domain types + error classes
-      jasaratUrlBuilder.ts                 # URL building + validation logic
-      jasaratUrlBuilder.test.ts            # URL builder unit tests
-      jasaratDateUtils.ts                  # UTC date arithmetic helper
-      jasaratDateUtils.test.ts             # Date arithmetic unit tests
-      jasaratPageFetcher.ts                # Server-side full-page fetcher
-      jasaratPageFetcher.test.ts           # Mocked fetcher unit tests
-      jasaratPageFetcher.live.test.ts      # Opt-in page fetcher live test
-      jasaratEditionDiscovery.ts           # Edition page discovery logic
-      jasaratEditionDiscovery.test.ts      # Mocked discovery unit tests
-      jasaratEditionDiscovery.live.test.ts # Opt-in discovery live test
-      jasaratHistoricalManifest.ts           # Orchestrator for historical manifests
-      jasaratHistoricalManifest.test.ts      # Mocked manifest orchestration tests
-      jasaratHistoricalManifest.live.test.ts # Opt-in manifest live test
-      index.ts                             # Public universal API
-      server.ts                            # Server-side fetch API
-```
-
-### Universal API (safe anywhere)
-
-```ts
-import {
-  buildJasaratPageImageUrl,
-  buildJasaratViewerUrl,
-  type JasaratPageReference,
-  type JasaratEditionReference,
-} from "@/lib/jasarat";
-```
-
-### Server-side fetching API (Node.js / server only)
-
-```ts
-import {
-  fetchJasaratPageImage,
-  discoverJasaratEditionPages,
-  buildJasaratHistoricalAcquisitionManifest,
-  JasaratPageFetchError,
-  JasaratEditionDiscoveryError,
-  type JasaratFetchedPageImage,
-  type JasaratPageFetchErrorCode,
-  type JasaratEditionDiscoveryResult,
-  type JasaratEditionDiscoveryErrorCode,
-  type JasaratHistoricalManifestOptions,
-  type JasaratHistoricalAcquisitionManifest,
-  type JasaratAcquisitionManifestEntry,
-} from "@/lib/jasarat/server";
-```
+Built by [Ali Raza Memon](https://github.com/alixraza1001) as part of a broader effort to apply software and AI to real-world Pakistani property workflows.
